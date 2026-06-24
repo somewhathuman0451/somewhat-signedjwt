@@ -1,0 +1,119 @@
+name: Publish NuGet Package
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  publish:
+    permissions:
+      contents: write
+      id-token: write  # enable GitHub OIDC token issuance for this job
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Resolve package version
+        id: version
+        shell: bash
+        run: |
+          git fetch --tags --force
+
+          next_patch_version() {
+            latest_tag="$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)"
+            if [[ -z "$latest_tag" ]]; then
+              echo "0.1.0"
+              return
+            fi
+
+            latest_version="${latest_tag#v}"
+            if [[ ! "$latest_version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+              echo "0.1.0"
+              return
+            fi
+
+            major="${BASH_REMATCH[1]}"
+            minor="${BASH_REMATCH[2]}"
+            patch="${BASH_REMATCH[3]}"
+            echo "${major}.${minor}.$((patch + 1))"
+          }
+
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            tag="${{ github.event.release.tag_name }}"
+            version="${tag#v}"
+            if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              version="$(next_patch_version)"
+            fi
+          else
+            version="$(next_patch_version)"
+          fi
+
+          if [[ -z "$version" ]]; then
+            echo "Package version could not be determined."
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Publishing version: $version"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release
+
+      - name: Pack Somewhat.SignedJwt
+        run: dotnet pack src/Somewhat.SignedJwt/Somewhat.SignedJwt.csproj --no-build --configuration Release --output ./artifacts /p:PackageVersion=${{ steps.version.outputs.version }}
+
+      - name: Pack Somewhat.SignedJwt.AwsCertificateManager
+        run: dotnet pack src/Somewhat.SignedJwt.AwsCertificateManager/Somewhat.SignedJwt.AwsCertificateManager.csproj --no-build --configuration Release --output ./artifacts /p:PackageVersion=${{ steps.version.outputs.version }}
+
+      - name: Pack Somewhat.SignedJwt.AzureKeyVault
+        run: dotnet pack src/Somewhat.SignedJwt.AzureKeyVault/Somewhat.SignedJwt.AzureKeyVault.csproj --no-build --configuration Release --output ./artifacts /p:PackageVersion=${{ steps.version.outputs.version }}
+
+      - name: Pack Somewhat.SignedJwt.GoogleSecretManager
+        run: dotnet pack src/Somewhat.SignedJwt.GoogleSecretManager/Somewhat.SignedJwt.GoogleSecretManager.csproj --no-build --configuration Release --output ./artifacts /p:PackageVersion=${{ steps.version.outputs.version }}
+
+      # Get a short-lived NuGet API key
+      - name: NuGet login (OIDC → temp API key)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: somewhathuman0451
+        
+      # Push the package
+      - name: NuGet push
+        run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{steps.login.outputs.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json
+    
+      - name: Tag version after manual publish
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          tag="v${version}"
+
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "Tag $tag already exists."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$tag"
+          git push origin "$tag"
