@@ -97,7 +97,20 @@ public sealed class SampleIntegrationTests : IClassFixture<WebApplicationFactory
 
     private static string GetMockServiceContentRoot()
     {
-        return Path.GetFullPath("/workspaces/somewhat-signedjwt/samples/Somewhat.SignedJwt.Sample.MockService");
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (current is not null)
+        {
+            var solutionPath = Path.Combine(current.FullName, "Somewhat.SignedJwt.sln");
+            if (File.Exists(solutionPath))
+            {
+                return Path.Combine(current.FullName, "samples", "Somewhat.SignedJwt.Sample.MockService");
+            }
+
+            current = current.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Could not locate repository root containing Somewhat.SignedJwt.sln.");
     }
 
     private sealed class ErrorPayload
