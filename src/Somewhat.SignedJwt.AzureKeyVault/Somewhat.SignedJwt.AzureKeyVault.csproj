@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>Somewhat.SignedJwt.AzureKeyVault</PackageId>
+    <Authors>Somewhat.SignedJwt Contributors</Authors>
+    <Description>Azure Key Vault certificate source support for Somewhat.SignedJwt.</Description>
+    <PackageTags>jwt;certificate;azure;key-vault</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Somewhat.SignedJwt/Somewhat.SignedJwt.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.13.2" />
+    <PackageReference Include="Azure.Security.KeyVault.Certificates" Version="4.7.0" />
+    <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.7.0" />
+  </ItemGroup>
+
+</Project>

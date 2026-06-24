@@ -1,0 +1,171 @@
+﻿@model Somewhat.SignedJwt.Sample.Mvc.Models.QuoteDemoViewModel
+
+@{
+    ViewData["Title"] = "Signed JWT Demo";
+}
+
+<div class="row g-4 py-4">
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h1 class="display-6 mb-3">Signed API Client Demo</h1>
+                <p class="text-secondary mb-4">
+                    Submit a quote request. The sample app signs a JWT with the configured certificate,
+                    attaches it to an outbound <code>HttpClient</code> call, and the mock service validates it.
+                </p>
+
+                @if (!Model.ExpectedSuccess)
+                {
+                    <div class="alert alert-warning">
+                        Negative demo path. This profile is expected to fail because the API key and certificate do not match.
+                    </div>
+                }
+
+                <form asp-action="Index" method="post" class="row g-3">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <div class="col-12">
+                        <label asp-for="ClientProfileName" class="form-label"></label>
+                        <select asp-for="ClientProfileName" class="form-select"
+                                asp-items="@(new SelectList(Model.AvailableProfiles, nameof(ClientProfileViewModel.Name), nameof(ClientProfileViewModel.DisplayName)))"></select>
+                        <span asp-validation-for="ClientProfileName" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="ProductCode" class="form-label"></label>
+                        <input asp-for="ProductCode" class="form-control" />
+                        <span asp-validation-for="ProductCode" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Quantity" class="form-label"></label>
+                        <input asp-for="Quantity" class="form-control" />
+                        <span asp-validation-for="Quantity" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12">
+                        <label asp-for="CustomerReference" class="form-label"></label>
+                        <input asp-for="CustomerReference" class="form-control" />
+                        <span asp-validation-for="CustomerReference" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 d-flex gap-2 align-items-center">
+                        <button type="submit" class="btn btn-primary">Request Quote</button>
+                        <span class="text-secondary">Mock service: @Model.MockServiceBaseAddress</span>
+                    </div>
+                </form>
+
+                @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+                {
+                    <div class="alert alert-danger mt-4 mb-0">
+                        @if (!string.IsNullOrWhiteSpace(Model.ErrorCode))
+                        {
+                            <div class="fw-semibold text-uppercase">@Model.ErrorCode</div>
+                        }
+                        <div>@Model.ErrorMessage</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body p-4">
+                <h2 class="h4 mb-3">Runtime Configuration</h2>
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Issuer</dt>
+                    <dd class="col-sm-8">@Model.JwtIssuer</dd>
+
+                    <dt class="col-sm-4">Audience</dt>
+                    <dd class="col-sm-8">@Model.JwtAudience</dd>
+
+                    <dt class="col-sm-4">API Key</dt>
+                    <dd class="col-sm-8">@Model.ApiKeyPreview</dd>
+
+                    <dt class="col-sm-4">Certificate Name</dt>
+                    <dd class="col-sm-8">@Model.CertificateName</dd>
+
+                    <dt class="col-sm-4">Expected Result</dt>
+                    <dd class="col-sm-8">@(Model.ExpectedSuccess ? "Accepted by mock service" : "Rejected by mock service")</dd>
+
+                    <dt class="col-sm-4">Profile Notes</dt>
+                    <dd class="col-sm-8">@Model.ProfileDescription</dd>
+
+                    <dt class="col-sm-4">Certificate</dt>
+                    <dd class="col-sm-8 small">@Model.CertificatePath</dd>
+                </dl>
+
+                <hr />
+
+                <h3 class="h6 text-uppercase text-secondary">Available Profiles</h3>
+                <ul class="list-group list-group-flush">
+                    @foreach (var profile in Model.AvailableProfiles)
+                    {
+                        <li class="list-group-item px-0">
+                            <div class="fw-semibold">@profile.DisplayName</div>
+                            <div class="small text-secondary">@profile.Name | @profile.ApiKey | @profile.CertificateName | @(profile.ExpectedSuccess ? "positive" : "negative")</div>
+                            <div class="small text-secondary">@profile.Description</div>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.Response is not null)
+{
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-4">
+            <h2 class="h4 mb-3">Mock Service Response</h2>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="text-secondary">Client</div>
+                    <div class="fw-semibold">@Model.Response.ClientProfile</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-secondary">Certificate</div>
+                    <div class="fw-semibold">@Model.Response.CertificateName</div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-secondary">Product</div>
+                    <div class="fw-semibold">@Model.Response.ProductCode</div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-secondary">Quantity</div>
+                    <div class="fw-semibold">@Model.Response.Quantity</div>
+                </div>
+                <div class="col-md-1">
+                    <div class="text-secondary">Unit Price</div>
+                    <div class="fw-semibold">@Model.Response.UnitPrice.ToString("C")</div>
+                </div>
+                <div class="col-md-1">
+                    <div class="text-secondary">Total</div>
+                    <div class="fw-semibold">@Model.Response.TotalPrice.ToString("C")</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-secondary">JWT Subject</div>
+                    <div class="fw-semibold">@Model.Response.Subject</div>
+                </div>
+            </div>
+
+            <hr />
+
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Authenticated API Key</dt>
+                <dd class="col-sm-9">@Model.Response.AuthenticatedApiKey</dd>
+
+                <dt class="col-sm-3">Issued At</dt>
+                <dd class="col-sm-9">@Model.Response.IssuedAtUtc.ToString("u")</dd>
+
+                <dt class="col-sm-3">Message</dt>
+                <dd class="col-sm-9">@Model.Response.Message</dd>
+            </dl>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

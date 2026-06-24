@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>Somewhat.SignedJwt.AwsCertificateManager</PackageId>
+    <Authors>Somewhat.SignedJwt Contributors</Authors>
+    <Description>AWS Certificate Manager certificate source support for Somewhat.SignedJwt.</Description>
+    <PackageTags>jwt;certificate;aws;acm</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Somewhat.SignedJwt/Somewhat.SignedJwt.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.CertificateManager" Version="3.7.401.14" />
+  </ItemGroup>
+
+</Project>
